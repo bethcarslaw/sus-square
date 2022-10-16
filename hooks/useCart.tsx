@@ -3,7 +3,12 @@ import { Product } from "../square-api";
 import { useLocalStorage } from "./useLocalStorage";
 
 export interface CartItem extends Product {
-  variation: string;
+  variation: CartItemVariation;
+}
+
+export interface CartItemVariation {
+  id: string;
+  quantity: number;
 }
 
 interface CartContext {

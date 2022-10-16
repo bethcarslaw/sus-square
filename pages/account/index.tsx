@@ -3,9 +3,11 @@ import { GetServerSideProps, NextPage } from "next";
 import prisma from "../../lib/prisma";
 import { getSession, signIn, useSession } from "next-auth/react";
 import { squareClient } from "@config/square-client";
+import { Box, Heading } from "@chakra-ui/react";
+import { sanitizeOrder } from "@square-api/util";
 
 interface AccountProps {
-  orders: any[];
+  orders: ReturnType<typeof sanitizeOrder>[];
 }
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
@@ -24,14 +26,18 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     orderIds,
   });
 
-  const orders = JSON.stringify(ordersRes.result);
+  const sanitizedOrders = ordersRes.result.orders.map((order) =>
+    sanitizeOrder(order)
+  );
+
+  const orders = JSON.stringify({ orders: sanitizedOrders });
 
   return {
     props: JSON.parse(orders),
   };
 };
 
-const Account: NextPage = (props: AccountProps) => {
+const Account: NextPage = ({ orders }: AccountProps) => {
   const { data: session } = useSession({
     required: true,
     onUnauthenticated() {
@@ -39,7 +45,19 @@ const Account: NextPage = (props: AccountProps) => {
     },
   });
 
-  return <div>User Profile</div>;
+  console.log(orders);
+
+  return (
+    <Box mt="50px">
+      <Heading>{session?.user?.name}</Heading>
+      <Heading size="sm">Orders</Heading>
+      <ul>
+        {orders.map((order) => (
+          <li key={order.id}>{order.id}</li>
+        ))}
+      </ul>
+    </Box>
+  );
 };
 
 export default Account;
