@@ -3,6 +3,7 @@ import { getProducts, Product } from "@square-api/products";
 import { useCart } from "@hooks/useCart";
 import { Button, Select } from "@chakra-ui/react";
 import { useState } from "react";
+import { getCategoryId } from "@square-api/categories";
 
 interface ProductPageProps {
   product: Product;
@@ -48,9 +49,11 @@ const Product: NextPage = ({ product }: ProductPageProps) => {
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const products = await getProducts();
+  const products = await getProducts({
+    categoryIds: [await getCategoryId("merch")],
+  });
 
-  const paths = products.map((item: Product) => {
+  const paths = products.map((item) => {
     return {
       params: {
         product: item.slug,
@@ -65,11 +68,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const products = await getProducts();
+  const products = await getProducts({
+    categoryIds: [await getCategoryId("merch")],
+  });
   const pathname = context.params?.product as string;
 
   const product = JSON.stringify(
-    products.find((item: Product) => item.slug === pathname)
+    products.find((item) => item.slug === pathname)
   );
 
   if (!product) {

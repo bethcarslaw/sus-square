@@ -1,3 +1,4 @@
+import { getCategoryId } from "@square-api/categories";
 import { getProducts, Product } from "@square-api/products";
 import { GetStaticProps, NextPage } from "next";
 import Link from "next/link";
@@ -22,7 +23,11 @@ const Merch: NextPage = ({ products }: MerchProps) => (
 );
 
 export const getStaticProps: GetStaticProps = async () => {
-  const products = JSON.stringify(await getProducts());
+  const products = JSON.stringify(
+    await getProducts({
+      categoryIds: [await getCategoryId("merch")],
+    })
+  );
 
   return {
     props: { products: JSON.parse(products) },

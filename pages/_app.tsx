@@ -1,7 +1,7 @@
 import "../styles/globals.css";
 import { SessionProvider } from "next-auth/react";
 import { AppProps } from "next/app";
-import { ChakraProvider } from "@chakra-ui/react";
+import { Box, ChakraProvider } from "@chakra-ui/react";
 import { theme } from "../config/theme";
 import { Nav } from "../components/Nav/Nav";
 
@@ -13,8 +13,10 @@ const App = ({ Component, pageProps }: AppProps) => {
     <ChakraProvider theme={theme}>
       <SessionProvider session={pageProps.session}>
         <CartProvider>
-          <Nav />
-          <Component {...pageProps} />
+          <Box minH="100vh" w="100%" bg="primary.900">
+            <Nav />
+            <Component {...pageProps} />
+          </Box>
         </CartProvider>
       </SessionProvider>
     </ChakraProvider>

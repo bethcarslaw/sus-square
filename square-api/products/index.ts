@@ -1,16 +1,21 @@
 import { CartItemVariation } from "@hooks/useCart";
-import { CatalogObject } from "square";
+import {
+  CatalogQuery,
+  CatalogCustomAttributeValue,
+  CustomAttributeFilter,
+} from "square";
 import { squareClient } from "../../config/square-client";
 
 export interface Product {
   id: string;
   name: string;
   price: string | bigint;
-  image_urls: (string | undefined)[] | undefined;
+  image_urls: Promise<string[]>;
   category: string;
   variations: Variation[];
   in_stock: boolean;
   slug: string;
+  customAttributes?: Record<string, CatalogCustomAttributeValue>;
 }
 
 interface Variation {
@@ -20,26 +25,29 @@ interface Variation {
   in_stock: boolean;
 }
 
-const getProducts = async () => {
+interface ProductQuery {
+  textFilter?: string;
+  categoryIds?: string[];
+  customAttributeFilters?: CustomAttributeFilter[];
+}
+
+const getProducts = async (productQuery: ProductQuery) => {
   try {
-    const catalogResponse = await squareClient.catalogApi.searchCatalogObjects({
-      objectTypes: ["ITEM"],
-      includeRelatedObjects: true,
-    });
+    const catalogResponse = await squareClient.catalogApi.searchCatalogItems(
+      productQuery
+    );
 
-    console.log(catalogResponse);
+    if (!catalogResponse.result.items) {
+      return [];
+    }
 
-    const products: Product[] =
-      catalogResponse.result.objects!.map((object) => {
+    const products =
+      catalogResponse.result.items.map(async (object) => {
         const basePrice =
           object!.itemData!.variations![0].itemVariationData!.priceMoney!
             .amount;
 
-        const imageUrls = catalogResponse.result
-          .relatedObjects!.filter((relatedObj) =>
-            object.itemData!.imageIds?.includes(relatedObj.id)
-          )
-          .map((image) => image.imageData!.url);
+        const imageUrls = await getImagesById(object.itemData.imageIds);
 
         const itemVariations =
           object.itemData!.variations?.map((variation) => {
@@ -48,26 +56,19 @@ const getProducts = async () => {
               name: variation.itemVariationData!.name || "",
               price: variation.itemVariationData!.priceMoney!.amount || "",
               in_stock:
-                variation.itemVariationData!.locationOverrides![0].soldOut ||
+                variation.itemVariationData?.locationOverrides![0].soldOut ||
                 true,
             };
           }) || [];
 
-        const isInStock = object.itemData!.variations!.every(
-          (variation) =>
-            variation.itemVariationData!.locationOverrides![0].soldOut
-        );
+        const isInStock = true;
 
-        const itemCategory =
-          (object.itemData!.categoryId &&
-            catalogResponse.result.relatedObjects!.find(
-              (relatedObj) => relatedObj.id === object.itemData!.categoryId
-            )!.categoryData!.name) ||
-          "";
+        const itemCategory = await getCategoryById(object.itemData.categoryId);
 
         return {
           id: object.id,
           name: object.itemData!.name || "",
+          customAttributes: object.customAttributeValues,
           price: basePrice || "",
           image_urls: imageUrls,
           variations: itemVariations,
@@ -77,12 +78,31 @@ const getProducts = async () => {
         };
       }) || [];
 
-    return products;
+    return Promise.all(products);
   } catch (error) {
     console.log(error);
 
     return [];
   }
+};
+
+const getImagesById = async (ids: string[]) => {
+  if (!ids) return [];
+
+  const imageUrls = ids.flatMap(async (id) => {
+    const imageRes = await squareClient.catalogApi.retrieveCatalogObject(id);
+
+    console.log(imageRes.result.object.imageData);
+    return imageRes.result.object.imageData.url;
+  });
+
+  return Promise.all(imageUrls);
+};
+
+const getCategoryById = async (id: string) => {
+  const cat = await squareClient.catalogApi.retrieveCatalogObject(id);
+
+  return cat.result.object.categoryData.name;
 };
 
 const checkIfOutOfStock = async (cartItems: CartItemVariation[]) => {

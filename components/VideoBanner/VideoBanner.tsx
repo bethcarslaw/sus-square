@@ -1,35 +1,58 @@
-import { Box, Image } from "@chakra-ui/react";
+import { Box, BoxProps, Image } from "@chakra-ui/react";
 
-const VideoBanner = () => (
-  <Box width="100%" height="80vh" position="relative">
-    <Image
-      src="/images/lightbringer.jpg"
-      objectFit="cover"
-      alt="Lightbringer - Out Now"
-      width="100%"
-      height="100%"
-    />
+interface VideoBannerProps extends BoxProps {
+  src: string;
+}
 
+const VideoBanner = ({ src, children, ...rest }: VideoBannerProps) => (
+  <>
     <Box
-      position="absolute"
-      top="0"
-      left="0"
-      bottom="0"
-      right="0"
-      margin="auto"
       width="100%"
-      height="100%"
+      height="90vh"
+      position="relative"
+      {...rest}
+      overflow="hidden"
     >
-      <video
-        loop
-        style={{ minWidth: "100%", minHeight: "100%", objectFit: "cover" }}
-        muted
-        autoPlay
+      <Image
+        src="/images/lightbringer.jpg"
+        objectFit="cover"
+        alt="Lightbringer - Out Now"
+        width="100%"
+        height="100%"
+      />
+
+      <Box
+        position="absolute"
+        top="0"
+        left="0"
+        bottom="0"
+        right="0"
+        margin="auto"
+        width="100%"
+        height="100%"
       >
-        <source src="/video/lightbringer.mp4" type="video/mp4" />
-      </video>
+        <video
+          loop
+          style={{ minWidth: "100%", minHeight: "100%", objectFit: "cover" }}
+          muted
+          autoPlay
+        >
+          <source src={src} type="video/mp4" />
+        </video>
+      </Box>
+      <Box
+        position="absolute"
+        top="0"
+        left="0"
+        w="100%"
+        h="100%"
+        bgGradient="linear-gradient(0deg, primaryAlpha.900 0%, primaryAlpha.50 64%)"
+      />
     </Box>
-  </Box>
+    <Box m="auto" mt="-100px">
+      {children}
+    </Box>
+  </>
 );
 
 export { VideoBanner };
