@@ -1,31 +1,46 @@
-import { getCategoryId } from "@square-api/categories";
+import { SimpleGrid } from "@chakra-ui/react";
+import { Filter } from "@components/Filter/Filter";
+import { Page } from "@components/Layout/Page/Page";
+import { ProductCard } from "@components/ProductCard";
+import { getCategoryIdsByName } from "@square-api/categories";
 import { getProducts, Product } from "@square-api/products";
 import { GetStaticProps, NextPage } from "next";
-import Link from "next/link";
+import { useRouter } from "next/router";
 
 interface MerchProps {
   products: Product[];
 }
 
-const Merch: NextPage = ({ products }: MerchProps) => (
-  <>
-    <div style={{ marginTop: "100px" }}>
-      <ul>
+const Merch: NextPage = ({ products }: MerchProps) => {
+  const router = useRouter();
+  const { filter } = router.query;
+
+  return (
+    <Page>
+      <Filter filterKey={"category"} objects={products} activeFilter={filter} />
+      <SimpleGrid columns={4} spacing={4}>
         {products.length > 0 &&
-          products.map((product) => (
-            <li key={product.id}>
-              <Link href={`merch/${product.slug}`}>{product.name}</Link>
-            </li>
-          ))}
-      </ul>
-    </div>
-  </>
-);
+          products
+            .filter((product) =>
+              filter ? product.category.toLowerCase() === filter : product
+            )
+            .map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+      </SimpleGrid>
+    </Page>
+  );
+};
 
 export const getStaticProps: GetStaticProps = async () => {
   const products = JSON.stringify(
     await getProducts({
-      categoryIds: [await getCategoryId("merch")],
+      categoryIds: await getCategoryIdsByName([
+        "t shirts",
+        "hats",
+        "artwork",
+        "music",
+      ]),
     })
   );
 

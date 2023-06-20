@@ -1,25 +1,30 @@
 import { squareClient } from "@config/square-client";
 
-const getCategoryId = async (categoryName: string) => {
+const getCategoryIdsByName = async (categoryNames: string[]) => {
   try {
-    const categories = await squareClient.catalogApi.searchCatalogObjects({
+    const categoriesRes = await squareClient.catalogApi.searchCatalogObjects({
       objectTypes: ["CATEGORY"],
     });
 
-    const category = categories.result.objects.find(
-      (category) =>
-        category.categoryData.name.toLowerCase() === categoryName.toLowerCase()
-    );
-
-    if (!category) {
-      throw new Error(`Category "${categoryName}" does not exist.`);
+    if (
+      !categoriesRes ||
+      !categoriesRes.result ||
+      !categoriesRes.result.objects
+    ) {
+      return [];
     }
 
-    return category.id;
+    const categoryIds = categoriesRes.result.objects
+      .filter((category) =>
+        categoryNames.includes(category.categoryData.name.toLowerCase())
+      )
+      .flatMap((category) => category.id);
+
+    return categoryIds;
   } catch (error) {
     console.log(error);
-    return "";
+    return [];
   }
 };
 
-export { getCategoryId };
+export { getCategoryIdsByName };

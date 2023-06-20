@@ -19,7 +19,8 @@
       "@square-api/*": ["square-api/*"],
       "@hooks/*": ["hooks/*"],
       "@config/*": ["config/*"],
-      "@components/*": ["components/*"]
+      "@components/*": ["components/*"],
+      "@util/*": ["util/*"]
     }
   },
   "exclude": ["node_modules"],

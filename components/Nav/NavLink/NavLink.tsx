@@ -11,7 +11,7 @@ const NavLink = ({ href, ...props }: LinkProps) => {
         textTransform="uppercase"
         fontSize="0.7rem"
         letterSpacing="4px"
-        opacity={`${pathname === href ? "1" : "0.6"}`}
+        opacity={`${pathname.includes(href) ? "1" : "0.6"}`}
         _hover={{ opacity: 1 }}
         {...props}
       />

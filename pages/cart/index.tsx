@@ -1,14 +1,29 @@
-import { Button, Heading, HStack } from "@chakra-ui/react";
+import {
+  Link as ChakraLink,
+  Button,
+  Divider,
+  Heading,
+  HStack,
+  Stack,
+  useToast,
+  Text,
+  Alert,
+} from "@chakra-ui/react";
+import { CartItem } from "@components/Cart/CartItem/CartItem";
+import { Page } from "@components/Layout/Page/Page";
+import { faCircleChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCart } from "@hooks/useCart";
-import { checkIfOutOfStock } from "@square-api/products";
 import axios from "axios";
 import { NextPage } from "next";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 const Cart: NextPage = () => {
-  const { products, clearCart } = useCart();
+  const { products, removeFromCart, total } = useCart();
   const { push } = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     const checkStockInCart = async () => {
@@ -17,37 +32,85 @@ const Cart: NextPage = () => {
         products
       );
 
-      console.log("OUT OF STOCK: ", itemsOutOfStock);
+      if (itemsOutOfStock.data.length > 0) {
+        products.forEach((p) => {
+          const outOfStock = itemsOutOfStock.data.find(
+            (item) => item.id === p.variation.id
+          );
+
+          if (outOfStock) {
+            removeFromCart(p, outOfStock.adjustBy);
+          }
+        });
+
+        toast({
+          title: "Whoops!",
+          description:
+            "Some items in your cart are out of stock and have been removed",
+          status: "warning",
+        });
+      }
     };
 
     checkStockInCart();
-  }, [products]);
+  }, []);
 
   return (
-    <div style={{ marginTop: "50px" }}>
-      <Heading>Cart</Heading>
+    <Page maxW="900px">
+      <Stack justify="space-between" direction="row" mb={14}>
+        <Heading>Cart</Heading>
+        <Link href="/merch" passHref>
+          <ChakraLink display="flex" alignItems="center">
+            <FontAwesomeIcon
+              icon={faCircleChevronLeft}
+              style={{ marginRight: "20px", display: "inline-block" }}
+              width="20px"
+            />
+            Continue shopping
+          </ChakraLink>
+        </Link>
+      </Stack>
 
-      <ul>
-        {products.map((product) => (
-          <li key={product.id}>
-            {product.name} Variation:{" "}
-            {
-              (console.log(product),
-              product.variations.find(
-                (variation) => variation.id === product.variation.id
-              ).name)
-            }
-          </li>
-        ))}
-      </ul>
+      <Stack spacing={8}>
+        {products
+          .sort((a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          )
+          .map((product) => (
+            <>
+              <CartItem key={product.id} item={product} />
+              <Divider />
+            </>
+          ))}
 
-      <HStack>
-        <Button onClick={() => push("/checkout")} colorScheme="primary">
-          Checkout
-        </Button>
-        <Button onClick={() => clearCart()}>Clear Cart</Button>
+        {products.length === 0 && (
+          <Alert>
+            Looks like your cart is empty!{" "}
+            <Link href="/merch" passHref>
+              <ChakraLink ml="20px">Continue shopping</ChakraLink>
+            </Link>
+          </Alert>
+        )}
+      </Stack>
+
+      <HStack justify="space-between" mt={6}>
+        <HStack height="50px">
+          <Heading>Total</Heading>
+          <Divider orientation="vertical" />
+          <Stack>
+            <Text>{total}</Text>
+            <Text fontSize="xs" opacity="0.6">
+              shipping calculated at checkout
+            </Text>
+          </Stack>
+        </HStack>
+        {products.length > 0 && (
+          <Button onClick={() => push("/checkout")} colorScheme="primary">
+            Checkout
+          </Button>
+        )}
       </HStack>
-    </div>
+    </Page>
   );
 };
 

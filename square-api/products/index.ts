@@ -1,21 +1,22 @@
 import { CartItemVariation } from "@hooks/useCart";
-import {
-  CatalogQuery,
-  CatalogCustomAttributeValue,
-  CustomAttributeFilter,
-} from "square";
+import { CustomAttributeFilter } from "square";
 import { squareClient } from "../../config/square-client";
 
 export interface Product {
   id: string;
   name: string;
   price: string | bigint;
-  image_urls: Promise<string[]>;
+  image_urls: string[];
   category: string;
   variations: Variation[];
   in_stock: boolean;
   slug: string;
-  customAttributes?: Record<string, CatalogCustomAttributeValue>;
+  description: string;
+  customAttributes?: CustomAttributes;
+}
+
+interface CustomAttributes {
+  [key: string]: string | number | boolean | string[];
 }
 
 interface Variation {
@@ -23,12 +24,14 @@ interface Variation {
   name: string;
   price: string | bigint;
   in_stock: boolean;
+  stock: number;
 }
 
 interface ProductQuery {
   textFilter?: string;
   categoryIds?: string[];
   customAttributeFilters?: CustomAttributeFilter[];
+  limit?: number;
 }
 
 const getProducts = async (productQuery: ProductQuery) => {
@@ -50,30 +53,59 @@ const getProducts = async (productQuery: ProductQuery) => {
         const imageUrls = await getImagesById(object.itemData.imageIds);
 
         const itemVariations =
-          object.itemData!.variations?.map((variation) => {
-            return {
-              id: variation.id,
-              name: variation.itemVariationData!.name || "",
-              price: variation.itemVariationData!.priceMoney!.amount || "",
-              in_stock:
-                variation.itemVariationData?.locationOverrides![0].soldOut ||
-                true,
-            };
-          }) || [];
+          (await Promise.all(
+            object.itemData!.variations?.map(async (variation) => {
+              const stockRes =
+                await squareClient.inventoryApi.retrieveInventoryCount(
+                  variation.id
+                );
+
+              const stockCount = stockRes.result.counts
+                ? stockRes.result?.counts[0]?.quantity
+                : 0;
+
+              return {
+                id: variation.id,
+                name: variation.itemVariationData!.name || "",
+                price: variation.itemVariationData!.priceMoney!.amount || "",
+                in_stock:
+                  variation.itemVariationData?.locationOverrides &&
+                  variation.itemVariationData?.locationOverrides![0].soldOut
+                    ? false
+                    : true,
+                stock: stockCount,
+              };
+            })
+          )) || [];
 
         const isInStock = true;
 
         const itemCategory = await getCategoryById(object.itemData.categoryId);
 
+        const customAttributes: CustomAttributes = {};
+
+        if (object.customAttributeValues) {
+          Object.keys(object.customAttributeValues).forEach((key) => {
+            const attribute = object.customAttributeValues[key];
+
+            customAttributes[attribute.name] =
+              attribute.stringValue ||
+              attribute.numberValue ||
+              attribute.booleanValue ||
+              attribute.selectionUidValues;
+          });
+        }
+
         return {
           id: object.id,
           name: object.itemData!.name || "",
-          customAttributes: object.customAttributeValues,
+          customAttributes,
           price: basePrice || "",
           image_urls: imageUrls,
           variations: itemVariations,
           in_stock: isInStock,
           category: itemCategory,
+          description: object.itemData!.description || "",
           slug: object.itemData!.name.replace(/\W+/g, "-").toLowerCase(),
         };
       }) || [];
@@ -92,7 +124,6 @@ const getImagesById = async (ids: string[]) => {
   const imageUrls = ids.flatMap(async (id) => {
     const imageRes = await squareClient.catalogApi.retrieveCatalogObject(id);
 
-    console.log(imageRes.result.object.imageData);
     return imageRes.result.object.imageData.url;
   });
 
@@ -106,24 +137,36 @@ const getCategoryById = async (id: string) => {
 };
 
 const checkIfOutOfStock = async (cartItems: CartItemVariation[]) => {
-  const res = await squareClient.catalogApi.batchRetrieveCatalogObjects({
-    objectIds: cartItems.flatMap((item) => item.id),
+  const res = await squareClient.inventoryApi.batchRetrieveInventoryCounts({
+    catalogObjectIds: cartItems.flatMap((item) => item.id),
   });
 
-  if (!res) {
-    console.error("Failed to retrieve catalog objects");
-    return [];
+  if (!res.result.counts) {
+    throw new Error("No inventory counts found");
   }
 
-  const objectsOutOfStock = res.result.objects.flatMap((catalogObject) => {
-    if (catalogObject.itemVariationData.locationOverrides[0].soldOut) {
-      return catalogObject.id;
+  const outOfStockItems = cartItems.reduce((outOfStockItems, item) => {
+    const count = res.result.counts.find(
+      (count) => count.catalogObjectId === item.id
+    );
+
+    if (count?.state === "OUT_OF_STOCK") {
+      outOfStockItems.push({ ...item, adjustBy: item.quantity });
     }
 
-    return;
-  });
+    if (item.quantity > parseInt(count.quantity)) {
+      outOfStockItems.push({
+        ...item,
+        adjustBy: item.quantity - parseInt(count.quantity),
+      });
+    }
 
-  return res.result.objects;
+    return outOfStockItems;
+  }, []);
+
+  console.log(outOfStockItems);
+
+  return outOfStockItems;
 };
 
 export { getProducts, checkIfOutOfStock };

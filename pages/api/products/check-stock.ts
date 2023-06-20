@@ -8,17 +8,13 @@ export default async function handle(
 ) {
   const products: CartItem[] = req.body;
 
-  if (products.length < 1) {
+  if (!products || products.length < 1) {
     res.send([]);
   }
-
-  console.log("PRODUCTS: ", req.body);
 
   const stockRes = await checkIfOutOfStock(
     products.flatMap((product) => product.variation)
   );
-
-  console.log("STOCK RES", stockRes);
 
   res.send(stockRes);
 }

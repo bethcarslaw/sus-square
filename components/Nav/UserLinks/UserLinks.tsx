@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Box,
   Button,
   HStack,
@@ -17,14 +18,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCartShopping,
   faChevronCircleDown,
-  faChevronDown,
 } from "@fortawesome/free-solid-svg-icons";
 import { useCart } from "@hooks/useCart";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
 const UserLinks = () => {
-  const { products } = useCart();
+  const { cartCount } = useCart();
   const { data: session } = useSession();
 
   return (
@@ -33,7 +33,7 @@ const UserLinks = () => {
         <ChakraLink>
           <HStack>
             <FontAwesomeIcon width="20px" icon={faCartShopping} />
-            <Box>{products.length}</Box>
+            <Box>{cartCount}</Box>
           </HStack>
         </ChakraLink>
       </Link>
@@ -54,23 +54,15 @@ const UserLinks = () => {
         <Popover>
           <PopoverTrigger>
             <HStack cursor="pointer">
-              <Box
-                borderRadius="100%"
-                overflow="hidden"
-                w="40px"
-                h="40px"
-                border="2px solid"
-                borderColor="primary.700"
-                outline="0"
-              >
-                <Img
-                  src={
-                    session.user.image
-                      ? session.user.image
-                      : "/images/default-avatar.jpg"
-                  }
-                />
-              </Box>
+              <Avatar
+                name={session.user.name}
+                src={
+                  session.user.image
+                    ? session.user.image
+                    : "/images/default-avatar.jpg"
+                }
+                size="sm"
+              />
               <FontAwesomeIcon width="15px" icon={faChevronCircleDown} />
             </HStack>
           </PopoverTrigger>

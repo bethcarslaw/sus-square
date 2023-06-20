@@ -5,15 +5,34 @@ import { VideoBanner } from "../components/VideoBanner/VideoBanner";
 import { GetStaticProps, NextPage } from "next";
 import { PromoCard } from "@components/PromoCard/PromoCard";
 import { getProducts, Product } from "@square-api/index";
-import { getCategoryId } from "@square-api/categories";
+import { getCategoryIdsByName } from "@square-api/categories";
 import { getCustomAttributeId } from "@square-api/util";
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  Grid,
+  GridItem,
+  Heading,
+  HStack,
+  Img,
+  Link as ChakraLink,
+  LinkBox,
+  LinkOverlay,
+  Stack,
+  Tag,
+  Text,
+} from "@chakra-ui/react";
+import Link from "next/link";
+import { toGBP } from "@util/index";
 
 interface HomeProps {
   featuredProducts: Product[];
+  tickets: Product[];
 }
 
-const Home: NextPage = ({ featuredProducts }: HomeProps) => {
-  console.log(featuredProducts);
+const Home: NextPage = ({ featuredProducts, tickets }: HomeProps) => {
   return (
     <>
       <Head>
@@ -28,37 +47,214 @@ const Home: NextPage = ({ featuredProducts }: HomeProps) => {
       </Head>
 
       <VideoBanner src="/video/lightbringer.mp4">
-        <PromoCard date="11 . 11 . 22" heading="Lightbringer" href="/" />
+        <PromoCard date="OUT NOW" heading="DECAY" href="/" />
       </VideoBanner>
 
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
+      <Container>
+        <Grid
+          h="700px"
+          maxW="1400px"
+          templateRows="repeat(2, 1fr)"
+          templateColumns="repeat(3, 1fr)"
+          gap="4"
+          margin="auto"
+          mt={10}
+        >
+          {featuredProducts.map((product, i) => {
+            let props;
+            switch (i) {
+              case 0:
+                props = {
+                  rowSpan: 2,
+                  colSpan: 1,
+                };
+                break;
+
+              case 3:
+                props = {
+                  rowSpan: 1,
+                  colSpan: 2,
+                };
+                break;
+
+              default:
+                props = {
+                  rowSpan: 1,
+                  colSpan: 1,
+                };
+                break;
+            }
+
+            return (
+              <GridItem
+                as={LinkBox}
+                key={product.id}
+                {...props}
+                bg="primary.500"
+                position="relative"
+                overflow="hidden"
+                data-group
+              >
+                <Img
+                  src={product.image_urls[0] || "/images/default-img.jpg"}
+                  position="absolute"
+                  top="0"
+                  left="0"
+                  width="100%"
+                  height="100%"
+                  objectFit="cover"
+                  transition="all 0.3s ease-in-out"
+                  _groupHover={{
+                    transform: "scale(1.1)",
+                  }}
+                />
+                <Stack
+                  direction="column-reverse"
+                  w="100%"
+                  h="100%"
+                  position="relative"
+                  bg="linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)"
+                  p={4}
+                >
+                  <Box>
+                    <HStack mb={2}>
+                      <Tag size="lg">{toGBP(product.price as string)}</Tag>
+                      {product.customAttributes.onSale && (
+                        <Tag size="lg" bg="red" textTransform="uppercase">
+                          sale
+                        </Tag>
+                      )}
+                    </HStack>
+                    <Heading>
+                      <Link href={`/merch/${product.slug}`} passHref>
+                        <LinkOverlay>{product.name}</LinkOverlay>
+                      </Link>
+                    </Heading>
+                  </Box>
+                </Stack>
+              </GridItem>
+            );
+          })}
+        </Grid>
+
+        <Stack justify="center" m="auto" maxW="300px" my={10}>
+          <Link href="/merch">
+            <Button
+              borderRadius="0"
+              textTransform="uppercase"
+              letterSpacing="2px"
+              fontSize="0.7rem"
+            >
+              View All Merch
+            </Button>
+          </Link>
+        </Stack>
+
+        <Stack margin="auto" maxW="1400px" align="center" mt={20}>
+          <Heading mb={10}>Upcoming Shows</Heading>
+          {tickets.length > 0 &&
+            tickets.map((ticket) => (
+              <HStack
+                key={ticket.id}
+                bg="rgba(255,255,255,0.05)"
+                py={2}
+                px={5}
+                w="100%"
+                maxW="800px"
+                justify="space-between"
+                _hover={{ bg: "rgba(255,255,255,0.1)" }}
+              >
+                <Text
+                  textTransform="uppercase"
+                  letterSpacing="2px"
+                  fontSize="0.7rem"
+                  opacity="0.8"
+                >
+                  {ticket.customAttributes.date}
+                </Text>
+                <Text
+                  textTransform="uppercase"
+                  letterSpacing="2px"
+                  fontSize="0.7rem"
+                  fontWeight="bold"
+                >
+                  {ticket.name}
+                </Text>
+                <Text
+                  textTransform="uppercase"
+                  letterSpacing="2px"
+                  fontSize="0.7rem"
+                  opacity="0.8"
+                >
+                  {ticket.customAttributes.location}
+                </Text>
+                <Text
+                  textTransform="uppercase"
+                  letterSpacing="2px"
+                  fontSize="0.7rem"
+                  opacity="0.8"
+                >
+                  {ticket.customAttributes.venue}
+                </Text>
+                <Link
+                  href={
+                    ticket.customAttributes.is_external
+                      ? (ticket.customAttributes.external_link as string)
+                      : ticket.slug
+                  }
+                  passHref
+                >
+                  <ChakraLink
+                    as={Button}
+                    isExternal={ticket.customAttributes.is_external as boolean}
+                    borderRadius="0"
+                    textTransform="uppercase"
+                    letterSpacing="2px"
+                    fontSize="0.7rem"
+                    _hover={{
+                      textDecoration: "none",
+                    }}
+                  >
+                    Tickets
+                  </ChakraLink>
+                </Link>
+              </HStack>
+            ))}
+
+          {tickets.length === 0 && (
+            <HStack
+              bg="rgba(255,255,255,0.05)"
+              py={5}
+              px={5}
+              w="100%"
+              maxW="800px"
+              justify="center"
+              _hover={{ bg: "rgba(255,255,255,0.1)" }}
+            >
+              <Text
+                textTransform="uppercase"
+                letterSpacing="2px"
+                fontSize="0.7rem"
+                fontWeight="bold"
+              >
+                No upcoming Shows{" "}
+              </Text>
+            </HStack>
+          )}
+        </Stack>
+        <Stack m="auto" maxW="300px" my={10}>
+          <Link href="/contact">
+            <Button
+              borderRadius="0"
+              textTransform="uppercase"
+              letterSpacing="2px"
+              fontSize="0.7rem"
+            >
+              Ask us to play your city
+            </Button>
+          </Link>
+        </Stack>
+      </Container>
     </>
   );
 };
@@ -74,11 +270,21 @@ export const getStaticProps: GetStaticProps = async () => {
           boolFilter: true,
         },
       ],
+      limit: 4,
+    })
+  );
+
+  const tickets = JSON.stringify(
+    await getProducts({
+      categoryIds: await getCategoryIdsByName(["tickets"]),
     })
   );
 
   return {
-    props: { featuredProducts: JSON.parse(products) },
+    props: {
+      featuredProducts: JSON.parse(products),
+      tickets: JSON.parse(tickets),
+    },
   };
 };
 

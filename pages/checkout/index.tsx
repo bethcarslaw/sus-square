@@ -1,9 +1,28 @@
-import { Box, Button, Divider, Heading, HStack, Stack } from "@chakra-ui/react";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionPanel,
+  Box,
+  Button,
+  Divider,
+  FormControl,
+  FormLabel,
+  Heading,
+  HStack,
+  Input,
+  Select,
+  SimpleGrid,
+  Stack,
+} from "@chakra-ui/react";
+import { Page } from "@components/Layout/Page/Page";
 import { useCart } from "@hooks/useCart";
+import { Steps, Step } from "@hooks/useProgress";
 import axios from "axios";
+import { countries } from "countries-list";
 import { GetStaticProps, NextPage } from "next";
 import { signIn, useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
   PaymentForm,
   CreditCard,
@@ -16,6 +35,7 @@ import { v4 as uuidv4 } from "uuid";
 interface CheckoutProps {
   applicationID: string;
   locationID: string;
+  countires: string[];
 }
 
 const Checkout: NextPage = ({ applicationID, locationID }: CheckoutProps) => {
@@ -28,6 +48,13 @@ const Checkout: NextPage = ({ applicationID, locationID }: CheckoutProps) => {
   });
   const [order, setOrder] = useState(null);
   const idemKey = useMemo(() => uuidv4(), []);
+  const {
+    register,
+    handleSubmit,
+    trigger,
+    watch,
+    formState: { errors },
+  } = useForm();
 
   // const paymentRequest = () => ({
   //   countryCode: "UK",
@@ -79,8 +106,8 @@ const Checkout: NextPage = ({ applicationID, locationID }: CheckoutProps) => {
     idempotencyKey: idemKey,
     lineItems: products.map((product) => {
       return {
-        quantity: "1",
-        catalogObjectId: product.variation,
+        quantity: product.variation.quantity.toString(),
+        catalogObjectId: product.variation.id,
       };
     }),
     fulfillments: [
@@ -125,11 +152,95 @@ const Checkout: NextPage = ({ applicationID, locationID }: CheckoutProps) => {
     }
   };
 
-  return (
-    <div style={{ marginTop: "50px" }}>
-      <Heading>Checkout</Heading>
+  const handleFormSubmit = async (event) => {
+    console.log(event);
+  };
 
-      <Button onClick={() => createOrder()}>Create Order</Button>
+  const validateForm = (fields?: string[]) => {
+    if (fields) {
+      trigger(fields);
+      console.log("errors:" + errors);
+      return errors ? false : true;
+    }
+  };
+
+  return (
+    <Page maxW="900px">
+      <Heading mb={10}>Checkout</Heading>
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <Steps>
+          <Step
+            heading="Contact Information"
+            validate={() => validateForm(["firstName"])}
+          >
+            <SimpleGrid columns={2} spacing={4}>
+              <FormControl>
+                <FormLabel>First Name</FormLabel>
+                <Input
+                  type="text"
+                  {...register("firstName", { required: true })}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Last Name</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Email</FormLabel>
+                <Input type="email" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Phone</FormLabel>
+                <Input type="phone" />
+              </FormControl>
+            </SimpleGrid>
+          </Step>
+
+          <Step heading="Shipping Details">
+            <SimpleGrid columns={2} spacing={4}>
+              <FormControl gridColumn="span 2/span 2">
+                <FormLabel>Address</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl gridColumn="span 2/span 2">
+                <FormLabel>Apt num, Suite</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>City</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>State / Province</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Zip / Postal Code</FormLabel>
+                <Input type="text" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Country</FormLabel>
+                <Select>
+                  <option value="GB">United Kingdom</option>
+                  {Object.keys(countries).map((key) => (
+                    <option key={key} value={key}>
+                      {countries[key].name}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+            </SimpleGrid>
+          </Step>
+        </Steps>
+      </form>
       {order && (
         <PaymentForm
           applicationId={applicationID}
@@ -160,7 +271,7 @@ const Checkout: NextPage = ({ applicationID, locationID }: CheckoutProps) => {
           </Stack>
         </PaymentForm>
       )}
-    </div>
+    </Page>
   );
 };
 

@@ -46,7 +46,19 @@ const VideoBanner = ({ src, children, ...rest }: VideoBannerProps) => (
         left="0"
         w="100%"
         h="100%"
-        bgGradient="linear-gradient(0deg, primaryAlpha.900 0%, primaryAlpha.50 64%)"
+        bgGradient="linear-gradient(0deg, primaryAlpha.900 10%, primaryAlpha.50 50%)"
+        transform="transform:translateZ(0)"
+      />
+      <Box
+        position="absolute"
+        bottom="0"
+        left="0"
+        w="100%"
+        h="446px"
+        bgImage="/images/bg-texture-transparent-transition.png"
+        bgRepeat="repeat"
+        bgSize="713px 446px"
+        bgPosition="center"
       />
     </Box>
     <Box m="auto" mt="-100px">

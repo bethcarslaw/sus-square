@@ -1,4 +1,4 @@
-import { getCategoryId } from "@square-api/categories";
+import { getCategoryIdsByName } from "@square-api/categories";
 import { getProducts, Product } from "@square-api/index";
 import { GetStaticProps, NextPage } from "next";
 import Link from "next/link";
@@ -29,20 +29,14 @@ const Shows: NextPage = ({ tickets }: ShowsProps) => (
 
 export const getStaticProps: GetStaticProps = async () => {
   const products = await getProducts({
-    categoryIds: [await getCategoryId("tickets")],
+    categoryIds: await getCategoryIdsByName(["tickets"]),
   });
 
   const parsedProducts = JSON.stringify(
     products.map((product) => {
       if (!product.customAttributes) return { ...product, isExternal: false };
 
-      let externalLink: boolean | string = "";
-
-      for (const [key, value] of Object.entries(product.customAttributes)) {
-        if (value.name === "external_link") {
-          externalLink = value.stringValue;
-        }
-      }
+      const externalLink = product.customAttributes.external_link;
 
       return {
         ...product,
