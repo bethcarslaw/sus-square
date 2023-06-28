@@ -47,7 +47,7 @@ const Home: NextPage = ({ featuredProducts, tickets }: HomeProps) => {
       </Head>
 
       <VideoBanner src="/video/lightbringer.mp4">
-        <PromoCard date="OUT NOW" heading="DECAY" href="/" />
+        <PromoCard date="OUT NOW" heading="Lightbringer" href="/" />
       </VideoBanner>
 
       <Container>

@@ -1,105 +1,145 @@
 import {
-  Box,
-  BoxProps,
-  Collapse,
-  Heading,
-  Stack,
-  useToast,
-} from "@chakra-ui/react";
-import React, { createContext, useContext, useState } from "react";
+    Box,
+    BoxProps,
+    Button,
+    Collapse,
+    Heading,
+    Stack,
+    useToast,
+} from '@chakra-ui/react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface StepContext {
-  activeStep: number;
-  setActiveStep: (step: number) => void;
+    activeStep: number;
+    setActiveStep: (step: number) => void;
+    goToNextStep: () => void;
+    totalSteps: number;
 }
 
 const StepContext = createContext<StepContext>({
-  activeStep: 1,
-  setActiveStep: () => null,
+    activeStep: 1,
+    setActiveStep: () => null,
+    goToNextStep: () => null,
+    totalSteps: 0,
 });
 
 const Steps = ({ children, ...props }) => {
-  const [activeStep, setActiveStep] = useState(1);
+    const [activeStep, setActiveStep] = useState(1);
+    const [totalSteps, setTotalSteps] = useState(0);
 
-  return (
-    <StepContext.Provider value={{ activeStep, setActiveStep }} {...props}>
-      {React.Children.toArray(children).map((child, index) => (
-        <>
-          {React.cloneElement(
-            child as React.ReactElement<
-              any,
-              string | React.JSXElementConstructor<any>
-            >,
-            { step: index + 1 }
-          )}
-        </>
-      ))}
-    </StepContext.Provider>
-  );
+    const stepComponents =
+        children.length > 0 &&
+        children.filter((child) => child.type.name === 'Step');
+
+    const goToNextStep = () => {
+        console.log('Go To Next Step');
+        if (activeStep >= totalSteps) {
+            return console.log('nope');
+        }
+
+        setActiveStep(activeStep + 1);
+    };
+
+    useEffect(() => {
+        setTotalSteps(stepComponents.length);
+    }, [children, stepComponents]);
+
+    return (
+        <StepContext.Provider
+            value={{ activeStep, setActiveStep, goToNextStep, totalSteps }}
+            {...props}
+        >
+            {React.Children.toArray(children).map((child, index) => (
+                <>
+                    {React.cloneElement(
+                        child as React.ReactElement<
+                            any,
+                            string | React.JSXElementConstructor<any>
+                        >,
+                        { step: index + 1 }
+                    )}
+                </>
+            ))}
+        </StepContext.Provider>
+    );
 };
 
 interface StepProps extends BoxProps {
-  heading?: string;
-  step?: number;
-  validate?: () => boolean;
+    heading?: string;
+    step?: number;
+    validate?: () => Promise<boolean>;
 }
 
 const Step = ({ step, heading, ...props }: StepProps) => {
-  const { activeStep, setActiveStep } = useSteps();
-  const toast = useToast();
+    const { activeStep, setActiveStep, totalSteps } = useSteps();
+    const toast = useToast();
 
-  const goToStep = (step: number) => {
-    console.log(props);
-    if (!props.hasOwnProperty("validate")) {
-      console.log("No validate");
-      setActiveStep(step);
-      return;
-    }
+    const goToStep = (step: number) => activeStep > step && setActiveStep(step);
 
-    if (props.validate()) {
-      console.log("Validated");
-      setActiveStep(step);
-      return;
-    }
+    const goToNextStep = async () => {
+        if (props.hasOwnProperty('validate')) {
+            const hasErrors = await props.validate();
 
-    return toast({
-      title: "Please fill in all required fields",
-      status: "error",
-    });
-  };
+            if (hasErrors) {
+                return toast({
+                    status: 'error',
+                    title: 'Whoops!',
+                    description:
+                        'Please address any form errors before proceeding.',
+                    isClosable: true,
+                });
+            }
+        }
 
-  return (
-    <>
-      <Stack
-        onClick={() => goToStep(step)}
-        opacity={activeStep !== step ? 0.4 : 1}
-        cursor="pointer"
-      >
-        <Heading
-          size="sm"
-          py="6"
-          border="1px solid rgba(255,255,255,0.1)"
-          borderLeft="none"
-          borderRight="none"
-          _hover={{ background: "rgba(255,255,255,0.1)" }}
-        >
-          {heading ? heading : `Step ${step}`}
-        </Heading>
-      </Stack>
-      <Collapse in={activeStep === step}>
-        <Box py={4} {...props} />
-      </Collapse>
-    </>
-  );
+        if (step === totalSteps) {
+            return;
+        }
+
+        setActiveStep(step + 1);
+    };
+    return (
+        <>
+            <Stack
+                onClick={() => goToStep(step)}
+                opacity={activeStep !== step ? 0.4 : 1}
+                cursor={activeStep < step ? 'default' : 'pointer'}
+            >
+                <Heading
+                    size="sm"
+                    py="6"
+                    border="1px solid rgba(255,255,255,0.1)"
+                    borderLeft="none"
+                    borderRight="none"
+                    _hover={{ background: 'rgba(255,255,255,0.1)' }}
+                >
+                    {heading ? heading : `Step ${step}`}
+                </Heading>
+            </Stack>
+            <Collapse in={activeStep === step}>
+                <Box py={4} {...props} />
+
+                {step < totalSteps && (
+                    <Stack direction="column-reverse">
+                        <Button onClick={() => goToNextStep()}>
+                            Next Step
+                        </Button>
+                    </Stack>
+                )}
+            </Collapse>
+        </>
+    );
 };
 
 const useSteps = () => {
-  const { activeStep, setActiveStep } = useContext(StepContext);
+    const { activeStep, setActiveStep, goToNextStep, totalSteps } =
+        useContext(StepContext);
 
-  return {
-    activeStep,
-    setActiveStep,
-  };
+    return {
+        activeStep,
+        setActiveStep,
+        goToNextStep,
+        totalSteps,
+    };
 };
 
 export { Steps, Step, useSteps };
